@@ -11,6 +11,9 @@ export class ApiError extends Error {
 async function request(path, { token, method = "GET", body, responseType = "json" } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
+    // Financial reports and session responses must not be retained in the
+    // browser's HTTP cache.
+    cache: "no-store",
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -28,6 +31,21 @@ async function request(path, { token, method = "GET", body, responseType = "json
 
 export async function login(email, password) {
   return request("/auth/email", { method: "POST", body: { email, password } });
+}
+
+export async function refreshAdminSession(refreshToken) {
+  return request("/auth/refresh", {
+    method: "POST",
+    body: { refresh_token: refreshToken },
+  });
+}
+
+export async function logout(token) {
+  return request("/auth/logout", {
+    token,
+    method: "POST",
+    body: { scope: "local" },
+  });
 }
 
 function searchParams(filters, columns, { page, limit, format } = {}) {
@@ -62,4 +80,28 @@ export async function getCurrentAdmin(token) {
 export async function exportReport(token, kind, filters, columns, format) {
   const params = searchParams(filters, columns, { format });
   return request(`/admin/reports/${kind}/export?${params}`, { token, responseType: "blob" });
+}
+
+export function verifyCurrentPassword(token, password) {
+  return request("/auth/password/verify", { token, method: "POST", body: { password } });
+}
+
+export function updatePassword(token, password, verificationToken) {
+  return request("/auth/password/update", { token, method: "POST", body: { password, token: verificationToken } });
+}
+
+export function sendCurrentEmailCode(token) {
+  return request("/users/me/email/change/send-otp", { token, method: "POST" });
+}
+
+export function verifyCurrentEmailCode(token, code) {
+  return request("/users/me/email/change/verify-current", { token, method: "POST", body: { code } });
+}
+
+export function sendNewEmailCode(token, verificationToken, email) {
+  return request("/users/me/email/change/send-new-otp", { token, method: "POST", body: { token: verificationToken, new_email: email } });
+}
+
+export function confirmNewEmail(token, code) {
+  return request("/users/me/email/change/confirm", { token, method: "POST", body: { code } });
 }

@@ -15,8 +15,10 @@ npm run dev
 `/functions/v1/api`. The committed default points to the Glame development
 project.
 
-Use an account with the `admin` role. The app stores only the access token in
-browser local storage and calls the following admin-only endpoints:
+Use an account with the `admin` role. The access token is held in memory only:
+it is never written to `localStorage` or `sessionStorage`, and is discarded on
+page reload, browser close, or sign-out. Sign-out also asks the API to revoke
+the current session. The app calls the following admin-only endpoints:
 
 - `GET /admin/reports/transactions`
 - `GET /admin/reports/payouts`
