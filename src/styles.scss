@@ -317,7 +317,6 @@ button:disabled {
   align-items: end;
 }
 
-.filters label,
 .login-form label {
   color: #526d69;
   font-size: 12px;
@@ -326,12 +325,6 @@ button:disabled {
   gap: 6px;
 }
 
-.filters label {
-  font-size: 13px;
-}
-
-.filters input,
-.filters select,
 .login-form input {
   width: 100%;
   height: 39px;
@@ -343,19 +336,10 @@ button:disabled {
   outline-color: #4a998c;
 }
 
-.filters input[aria-invalid='true'] {
-  border-color: $color-danger;
-}
-
 .filter-actions {
   padding-bottom: 1px;
 }
 
-.filter-actions .text-button {
-  padding: 0 7px;
-  min-height: 40px;
-  color: #46726c;
-}
 
 .summary-grid {
   flex: 0 0 auto;
