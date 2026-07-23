@@ -48,7 +48,9 @@ export function formatCell(locale, column, value, row) {
   if (column.endsWith("_date") || column.endsWith("_at")) {
     const date = new Date(value);
     return Number.isNaN(date.valueOf()) ? String(value) : new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", {
-      dateStyle: "medium", timeStyle: column.endsWith("_at") ? "short" : undefined,
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Europe/Paris",
     }).format(date);
   }
   if (column === "status" || column === "payment_status" || column === "pennylane_delivery_status") return statusLabel(locale, String(value));

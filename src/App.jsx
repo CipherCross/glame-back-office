@@ -13,6 +13,7 @@ import { LOCALE_STORAGE_KEY, reportDescription, reportTitle, t } from "./lib/i18
 const STORAGE_KEY = "glame-admin-session";
 const REFRESH_TOKEN_STORAGE_KEY = "glame-admin-refresh-token:v1";
 const PAGE_SIZE = 10;
+const BACK_OFFICE_ROLES = new Set(["admin", "accountant"]);
 
 function clearLegacySession() {
   // Versions before this change persisted a bearer token in localStorage.
@@ -93,7 +94,7 @@ export default function App() {
     setLoginLoading(true); setLoginError("");
     try {
       const data = await login(email, password);
-      if (data.role !== "admin") throw new Error("This account does not have Back Office access.");
+      if (!BACK_OFFICE_ROLES.has(data.role)) throw new Error("This account does not have Back Office access.");
       const nextSession = toAdminSession(data, email);
       persistRefreshToken(nextSession.refreshToken);
       setSession(nextSession);
