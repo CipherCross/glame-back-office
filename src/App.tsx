@@ -1,202 +1,174 @@
-import {useEffect, useState} from "react";
-import AccountSettings from "components/AccountSettings";
-import Login from "components/Login";
-import PayoutsPage from "pages/PayoutsPage";
-import TransactionsPage from "pages/TransactionsPage";
-import {ApiError, getArtists, getCurrentAdmin, login, logout, refreshAdminSession} from "lib/api";
-import {defaultReportState, persistReportState, restoreReportState} from "lib/report-cache";
-import {LOCALE_STORAGE_KEY, reportTitle, t} from "lib/i18n";
-import {REPORTS} from "common/constants/reporting";
-import {REFRESH_TOKEN_STORAGE_KEY, STORAGE_KEY} from "common/constants";
-import type {Artist, AuthResponse, ReportKind, ReportView} from "common/types";
-import type {AdminSession, Locale} from "common/types/AccountSettings";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import AccountSettings from 'components/AccountSettings';
+import AccountantLayout from 'layouts/AccountantLayout';
+import AdminLayout from 'layouts/AdminLayout';
+import Login from 'components/Login';
+import NotFound from 'components/NotFound';
+import PayoutsPage from 'pages/PayoutsPage';
+import Toaster from 'components/Toaster';
+import TransactionsPage from 'pages/TransactionsPage';
+import { t } from 'lib/i18n';
+import { api, useGetArtistsQuery, useGetCurrentUserQuery } from 'store/api';
+import { clearSession, refreshSession, restoreSession, signIn, signOutRemote, updateSession } from 'store/auth';
+import { useAppDispatch, useAppSelector } from 'store/hooks';
+import { selectReportState, switchReport, updateReportView } from 'store/reports';
+import { setLocale } from 'store/settings';
+import type { ReportKind, ReportView, Toast, ToastType } from 'common/types';
 
-function logStorageError(operation: string, error: unknown): void {
-  const details = error instanceof Error ? error.message : String(error);
-  console.error(`Unable to ${operation}.`, details);
-}
+let toastSequence = 0;
 
-function clearLegacySession(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error: unknown) {
-    logStorageError("clear the legacy session", error);
-  }
-}
-
-function readRefreshToken(): string | null {
-  try {
-    return sessionStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function persistRefreshToken(refreshToken: string | null): void {
-  try {
-    if (refreshToken) sessionStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
-    else sessionStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-  } catch (error: unknown) {
-    logStorageError("persist the refresh token", error);
-  }
-}
-
-function toAdminSession(data: AuthResponse, fallbackEmail = ""): AdminSession {
-  const accessToken = data.session?.access_token;
-  const refreshToken = data.session?.refresh_token;
-  if (!accessToken || !refreshToken) throw new Error("The authentication session is incomplete.");
-  return {
-    accessToken,
-    refreshToken,
-    expiresAt: (data.session?.expires_at ?? 0) * 1000,
-    email: data.user?.email ?? fallbackEmail,
-    name: data.user?.user_metadata?.full_name ?? data.user?.email ?? fallbackEmail,
-  };
-}
-
-function restoreLocale(): Locale {
-  const locale = localStorage.getItem(LOCALE_STORAGE_KEY);
-  return locale === "en" || locale === "fr" ? locale : "fr";
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+function errorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
+  return typeof error.status === 'number' ? error.status : undefined;
 }
 
 export default function App() {
-  const [session, setSession] = useState<AdminSession | null>(null);
-  const [restoringSession, setRestoringSession] = useState(true);
-  const [locale, setLocale] = useState<Locale>(restoreLocale);
-  const [loginError, setLoginError] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [reportState, setReportState] = useState(defaultReportState);
-  const [artists, setArtists] = useState<Artist[]>([]);
+  const dispatch = useAppDispatch();
+  const { session, stage, error: authError } = useAppSelector((state) => state.auth);
+  const locale = useAppSelector((state) => state.settings.locale);
+  const reportState = useAppSelector((state) => selectReportState(state.reports, session?.email));
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [path, setPath] = useState(() => window.location.pathname);
+  const [restoringSession, setRestoringSession] = useState(true);
+  const restoreStarted = useRef(false);
   const kind = reportState.activeKind;
+  const artistsQuery = useGetArtistsQuery(undefined, { skip: !session });
+  const currentUserQuery = useGetCurrentUserQuery(undefined, { skip: !session });
+
+  const dismissToast = useCallback((id: string): void => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }, []);
+
+  const notify = useCallback((message: string, type: ToastType): void => {
+    const id = `${Date.now()}-${toastSequence++}`;
+    setToasts((current) => [...current, { id, message, type }]);
+  }, []);
+
+  const signOut = useCallback(
+    (revoke = true): void => {
+      const accessToken = session?.accessToken;
+      if (revoke && accessToken) void dispatch(signOutRemote({ accessToken }));
+      dispatch(clearSession());
+      dispatch(api.util.resetApiState());
+    },
+    [dispatch, session?.accessToken]
+  );
 
   function updateView(reportKind: ReportKind, changes: Partial<ReportView>): void {
-    setReportState((current) => ({
-      ...current,
-      views: {
-        ...current.views,
-        [reportKind]: {...current.views[reportKind], ...changes},
-      },
-    }));
+    if (session) dispatch(updateReportView({ email: session.email, kind: reportKind, changes }));
   }
 
-  function changeLocale(nextLocale: Locale): void {
-    localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
-    setLocale(nextLocale);
+  function changeLocale(nextLocale: typeof locale): void {
+    dispatch(setLocale(nextLocale));
   }
 
   async function handleLogin(email: string, password: string): Promise<void> {
-    setLoginLoading(true);
-    setLoginError("");
     try {
-      const data = await login(email, password);
-      if (data.role !== "admin") throw new Error("This account does not have Back Office access.");
-      const nextSession = toAdminSession(data, email);
-      persistRefreshToken(nextSession.refreshToken);
-      setSession(nextSession);
-      setReportState(restoreReportState(nextSession.email));
-    } catch (error) {
-      setLoginError(errorMessage(error, "Could not sign in."));
-    } finally {
-      setLoginLoading(false);
+      await dispatch(signIn({ email, password })).unwrap();
+      notify(t(locale, 'signedIn'), 'success');
+    } catch (message) {
+      notify(typeof message === 'string' ? message : 'Could not sign in.', 'error');
     }
-  }
-
-  function signOut(revoke = true): void {
-    const accessToken = session?.accessToken;
-    clearLegacySession();
-    persistRefreshToken(null);
-    setSession(null);
-    setReportState(defaultReportState());
-    if (revoke && accessToken) void logout(accessToken).catch(() => undefined);
-  }
-
-  function updateSessionEmail(email: string): void {
-    setSession((current) => current ? {...current, email} : current);
   }
 
   useEffect(() => {
-    let active = true;
-    clearLegacySession();
-    const refreshToken = readRefreshToken();
-    if (!refreshToken) {
-      setRestoringSession(false);
-      return () => { active = false; };
-    }
-
-    void refreshAdminSession(refreshToken).then((data) => {
-      if (!active) return;
-      const restoredSession = toAdminSession(data);
-      persistRefreshToken(restoredSession.refreshToken);
-      setSession(restoredSession);
-      setReportState(restoreReportState(restoredSession.email));
-    }).catch(() => {
-      persistRefreshToken(null);
-    }).finally(() => {
-      if (active) setRestoringSession(false);
-    });
-
-    return () => { active = false; };
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  useEffect(() => {
+    if (restoreStarted.current) return;
+    restoreStarted.current = true;
+    void dispatch(restoreSession())
+      .unwrap()
+      .catch(() => undefined)
+      .finally(() => setRestoringSession(false));
+  }, [dispatch]);
 
   useEffect(() => {
     if (!session) return undefined;
     const refreshIn = Math.max(30_000, session.expiresAt - Date.now() - 60_000);
     const timeout = window.setTimeout(() => {
-      void refreshAdminSession(session.refreshToken).then((data) => {
-        const refreshedSession = toAdminSession(data, session.email);
-        persistRefreshToken(refreshedSession.refreshToken);
-        setSession(refreshedSession);
-      }).catch(() => {
-        signOut(false);
-      });
+      void dispatch(refreshSession())
+        .unwrap()
+        .catch(() => signOut(false));
     }, refreshIn);
     return () => window.clearTimeout(timeout);
-  }, [session?.refreshToken, session?.expiresAt]);
+  }, [dispatch, session?.refreshToken, session?.expiresAt, signOut]);
 
   useEffect(() => {
-    if (session?.email) persistReportState(session.email, reportState);
-  }, [session?.email, reportState]);
+    const user = currentUserQuery.data?.user;
+    if (!session || !user) return;
+    const name = user.full_name?.trim() || user.email || session.email;
+    const email = user.email || session.email;
+    if (name !== session.name || email !== session.email) dispatch(updateSession({ name, email }));
+  }, [currentUserQuery.data, dispatch, session]);
 
   useEffect(() => {
-    if (!session) return;
-    void getCurrentAdmin(session.accessToken).then((data) => {
-      const name = data.user?.full_name?.trim() || data.user?.email || session.email;
-      const email = data.user?.email || session.email;
-      if (name === session.name && email === session.email) return;
-      setSession({...session, name, email});
-    }).catch((error: unknown) => {
-      if (error instanceof ApiError && error.status === 401) signOut(false);
-    });
-    void getArtists(session.accessToken).then((data) => setArtists(data.artists ?? [])).catch((error: unknown) => {
-      if (error instanceof ApiError && error.status === 401) signOut(false);
-    });
-  }, [session]);
+    if (errorStatus(currentUserQuery.error) === 401 || errorStatus(artistsQuery.error) === 401) signOut(false);
+  }, [artistsQuery.error, currentUserQuery.error, signOut]);
 
-  function switchReport(nextKind: ReportKind): void {
-    setReportState((current) => ({...current, activeKind: nextKind}));
+  function goHome(): void {
+    window.history.pushState({}, '', '/');
+    setPath('/');
   }
 
-  if (restoringSession) return <main className="session-restoring" aria-busy="true" aria-label="Restoring session"><span /></main>;
-  if (!session) return <Login onLogin={handleLogin} loading={loginLoading} error={loginError} locale={locale} onLocaleChange={changeLocale} />;
+  if (path !== '/') return <NotFound locale={locale} onLocaleChange={changeLocale} onBackHome={goHome} />;
+
+  if (restoringSession)
+    return (
+      <>
+        <main className="session-restoring" aria-busy="true" aria-label="Restoring session">
+          <span />
+        </main>
+        <Toaster toasts={toasts} locale={locale} onDismiss={dismissToast} />
+      </>
+    );
+
+  if (!session)
+    return (
+      <>
+        <Login onLogin={handleLogin} loading={stage === 'pending'} error={authError ?? ''} locale={locale} onLocaleChange={changeLocale} />
+        <Toaster toasts={toasts} locale={locale} onDismiss={dismissToast} />
+      </>
+    );
 
   const reportPageProps = {
     session,
     locale,
-    artists,
+    artists: artistsQuery.data?.artists ?? [],
     view: reportState.views[kind],
     onViewChange: (changes: Partial<ReportView>) => updateView(kind, changes),
     onUnauthorized: () => signOut(false),
     onLocaleChange: changeLocale,
+    onNotify: notify
   };
 
-  return <div className="app-shell">
-    <aside className="sidebar"><div><div className="sidebar-brand"><img src="/logo.svg" alt="Glame" /></div><p className="workspace">{t(locale, "backOffice")}</p><nav aria-label={t(locale, "results")}>{(Object.keys(REPORTS) as ReportKind[]).map((key) => <button key={key} className={`nav-item ${kind === key ? "active" : ""}`} onClick={() => switchReport(key)}><span>{key === "transactions" ? "▦" : "↗"}</span>{reportTitle(locale, key)}</button>)}</nav></div><div className="sidebar-user"><span>{session.name}</span><button className="account-button" onClick={() => setAccountSettingsOpen(true)}>{t(locale, "account")}</button><button onClick={() => signOut()}>{t(locale, "signOut")}</button></div></aside>
-    {kind === "transactions" ? <TransactionsPage {...reportPageProps} /> : <PayoutsPage {...reportPageProps} />}
-    {accountSettingsOpen && <AccountSettings session={session} locale={locale} onClose={() => setAccountSettingsOpen(false)} onEmailChanged={updateSessionEmail} />}
-  </div>;
+  const Layout = session.role === 'admin' ? AdminLayout : AccountantLayout;
+  return (
+    <>
+      <Layout
+        session={session}
+        locale={locale}
+        activeReport={kind}
+        onReportChange={(nextKind) => dispatch(switchReport({ email: session.email, kind: nextKind }))}
+        onOpenAccountSettings={() => setAccountSettingsOpen(true)}
+        onSignOut={() => signOut()}
+      >
+        {kind === 'transactions' ? <TransactionsPage {...reportPageProps} /> : <PayoutsPage {...reportPageProps} />}
+      </Layout>
+      {accountSettingsOpen && (
+        <AccountSettings
+          session={session}
+          locale={locale}
+          onClose={() => setAccountSettingsOpen(false)}
+          onEmailChanged={(email) => dispatch(updateSession({ email }))}
+          onNotify={notify}
+        />
+      )}
+      <Toaster toasts={toasts} locale={locale} onDismiss={dismissToast} />
+    </>
+  );
 }

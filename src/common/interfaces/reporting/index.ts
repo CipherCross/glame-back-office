@@ -1,7 +1,7 @@
-import type {DateDimension, ReportColumn} from "common/types";
+import type { DateDimension, ReportColumn } from 'common/types';
 
 export interface ReportDefinition {
-    dimensions: DateDimension[];
-    columns: ReportColumn[];
-    defaultColumns: ReportColumn[];
+  dimensions: DateDimension[];
+  columns: ReportColumn[];
+  defaultColumns: ReportColumn[];
 }

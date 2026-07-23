@@ -13,8 +13,11 @@
       "app": ["./src/App.tsx"],
       "common/*": ["./src/common/*"],
       "components/*": ["./src/components/*"],
+      "layouts/*": ["./src/layouts/*"],
       "lib/*": ["./src/lib/*"],
-      "pages/*": ["./src/pages/*"]
+      "pages/*": ["./src/pages/*"],
+      "store/*": ["./src/store/*"],
+      "utils/*": ["./src/utils/*"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,

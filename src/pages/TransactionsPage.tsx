@@ -1,5 +1,6 @@
-import ReportPage, {type ReportPageProps} from "pages/ReportPage";
+import ReportPage from 'pages/ReportPage';
+import type {ReportPageProps} from "common/interfaces/report";
 
-export default function TransactionsPage(props: Omit<ReportPageProps, "kind">) {
+export default function TransactionsPage(props: Omit<ReportPageProps, 'kind'>) {
   return <ReportPage {...props} kind="transactions" />;
 }

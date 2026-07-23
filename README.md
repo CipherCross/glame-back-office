@@ -15,10 +15,10 @@ npm run dev
 `/functions/v1/api`. The committed default points to the Glame development
 project.
 
-Use an account with the `admin` role. The access token is held in memory only:
+Use an account with the `admin` or `accountant` role. The access token is held in memory only:
 it is never written to `localStorage` or `sessionStorage`, and is discarded on
 page reload, browser close, or sign-out. Sign-out also asks the API to revoke
-the current session. The app calls the following admin-only endpoints:
+the current session. The app currently calls the following reporting endpoints:
 
 - `GET /admin/reports/transactions`
 - `GET /admin/reports/payouts`
@@ -26,4 +26,5 @@ the current session. The app calls the following admin-only endpoints:
 - `GET /admin/reports/{transactions|payouts}/export?format=csv|xlsx`
 
 The API, rather than the browser, applies the allowed columns, report filters,
-role check, pagination and export audit log.
+role check, pagination and export audit log. The frontend routes each allowed
+role through its own layout, which currently shares the same reporting UI.
