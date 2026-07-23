@@ -1,14 +1,16 @@
-import { REPORTS } from "../lib/reporting.js";
-import { statusLabel, t } from "../lib/i18n.js";
+import {REPORTS} from "lib/reporting";
+import {statusLabel, t} from "lib/i18n";
+import type {DateDimension, ReportFilters} from "common/types";
+import {STATUSES} from "common/constants/Filters";
+import type {FiltersProps} from "common/interfaces/Filters";
 
-const STATUSES = ["confirmed", "cancelled", "completed", "paid", "pending", "failed", "reversed", "refunded", "partially_refunded"];
 
-export default function Filters({ kind, filters, artists, onChange, onApply, onClear, loading, locale }) {
+export default function Filters({ kind, filters, artists, onChange, onApply, onClear, loading, locale }: FiltersProps) {
   const report = REPORTS[kind];
-  function update(key, value) { onChange({ ...filters, [key]: value }); }
+  function update<K extends Exclude<keyof ReportFilters, "dateDimension">>(key: K, value: ReportFilters[K]) { onChange({ ...filters, [key]: value }); }
   return (
     <section className="filters" aria-label={t(locale, "results")}>
-      <label>{t(locale, "dateType")}<select value={filters.dateDimension} onChange={(event) => update("dateDimension", event.target.value)}>
+      <label>{t(locale, "dateType")}<select value={filters.dateDimension} onChange={(event) => onChange({ ...filters, dateDimension: event.target.value as DateDimension })}>
         {report.dimensions.map((dimension) => <option value={dimension} key={dimension}>{t(locale, dimension)}</option>)}
       </select></label>
       <label>{t(locale, "from")}<input type="date" value={filters.from} onChange={(event) => update("from", event.target.value)} /></label>

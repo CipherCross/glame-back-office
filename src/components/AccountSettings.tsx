@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   confirmNewEmail,
   sendCurrentEmailCode,
@@ -6,10 +6,16 @@ import {
   updatePassword,
   verifyCurrentEmailCode,
   verifyCurrentPassword,
-} from "../lib/api.js";
-import { t } from "../lib/i18n.js";
+} from "lib/api";
+import { t } from "lib/i18n";
+import type {AccountSettingsProps} from "common/interfaces/AccountSettings";
 
-export default function AccountSettings({ session, locale, onClose, onEmailChanged }) {
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Request failed.";
+}
+
+export default function AccountSettings({ session, locale, onClose, onEmailChanged }: AccountSettingsProps) {
   const [emailStep, setEmailStep] = useState("idle");
   const [emailToken, setEmailToken] = useState("");
   const [currentCode, setCurrentCode] = useState("");
@@ -25,9 +31,9 @@ export default function AccountSettings({ session, locale, onClose, onEmailChang
   const [passwordError, setPasswordError] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  async function emailAction(action) {
+  async function emailAction(action: () => Promise<void>) {
     setEmailLoading(true); setEmailError(""); setEmailMessage("");
-    try { await action(); } catch (error) { setEmailError(error.message ?? "Request failed."); }
+    try { await action(); } catch (error) { setEmailError(errorMessage(error)); }
     finally { setEmailLoading(false); }
   }
 
@@ -38,7 +44,7 @@ export default function AccountSettings({ session, locale, onClose, onEmailChang
     });
   }
 
-  function verifyCurrentCode(event) {
+  function verifyCurrentCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     emailAction(async () => {
       const data = await verifyCurrentEmailCode(session.accessToken, currentCode.trim());
@@ -46,7 +52,7 @@ export default function AccountSettings({ session, locale, onClose, onEmailChang
     });
   }
 
-  function sendNewCode(event) {
+  function sendNewCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     emailAction(async () => {
       await sendNewEmailCode(session.accessToken, emailToken, newEmail.trim());
@@ -54,7 +60,7 @@ export default function AccountSettings({ session, locale, onClose, onEmailChang
     });
   }
 
-  function confirmEmail(event) {
+  function confirmEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     emailAction(async () => {
       const data = await confirmNewEmail(session.accessToken, newEmailCode.trim());
@@ -62,7 +68,7 @@ export default function AccountSettings({ session, locale, onClose, onEmailChang
     });
   }
 
-  async function changePassword(event) {
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordError(""); setPasswordMessage("");
     if (newPassword.length < 6) { setPasswordError(t(locale, "passwordMinimum")); return; }
@@ -72,7 +78,7 @@ export default function AccountSettings({ session, locale, onClose, onEmailChang
       const verification = await verifyCurrentPassword(session.accessToken, currentPassword);
       await updatePassword(session.accessToken, newPassword, verification.token);
       setCurrentPassword(""); setNewPassword(""); setPasswordConfirmation(""); setPasswordMessage(t(locale, "passwordUpdated"));
-    } catch (error) { setPasswordError(error.message ?? "Request failed."); }
+    } catch (error) { setPasswordError(errorMessage(error)); }
     finally { setPasswordLoading(false); }
   }
 

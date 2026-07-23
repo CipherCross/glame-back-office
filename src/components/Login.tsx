@@ -1,12 +1,14 @@
-import { useState } from "react";
-import LanguageSwitch from "./LanguageSwitch.jsx";
-import { t } from "../lib/i18n.js";
+import {type ChangeEvent, useState} from "react";
+import LanguageSwitch from "components/LanguageSwitch";
+import {t} from "lib/i18n";
+import type {LoginProps} from "common/interfaces/Login";
 
-export default function Login({ onLogin, loading, error, locale, onLocaleChange }) {
+
+export default function Login({ onLogin, loading, error, locale, onLocaleChange }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function submit(event) {
+  function submit(event: ChangeEvent<HTMLFormElement>) {
     event.preventDefault();
     onLogin(email.trim(), password);
   }

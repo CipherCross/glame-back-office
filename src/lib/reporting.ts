@@ -1,9 +1,15 @@
-import { columnLabel as translatedColumnLabel, statusLabel } from "./i18n.js";
+import {columnLabel as translatedColumnLabel, statusLabel} from "lib/i18n";
+import type {DateDimension, ReportColumn, ReportFilters, ReportKind, ReportRow} from "common/types";
+import type {Locale} from "common/types/AccountSettings";
 
-export const REPORTS = {
+interface ReportDefinition {
+  dimensions: DateDimension[];
+  columns: ReportColumn[];
+  defaultColumns: ReportColumn[];
+}
+
+export const REPORTS: Record<ReportKind, ReportDefinition> = {
   transactions: {
-    title: "Transactions",
-    description: "Service payments, cancellations and refunds.",
     dimensions: ["service", "payment", "refund", "invoice"],
     columns: [
       "booking_id", "customer", "artist_names", "status", "payment_status",
@@ -19,8 +25,6 @@ export const REPORTS = {
     ],
   },
   payouts: {
-    title: "Payouts & invoices",
-    description: "Artist transfers and self-billing invoice reconciliation.",
     dimensions: ["payout"],
     columns: [
       "transfer_id", "booking_id", "artist_id", "artist_name", "status",
@@ -35,28 +39,33 @@ export const REPORTS = {
   },
 };
 
-export function columnLabel(locale, column) { return translatedColumnLabel(locale, column); }
+export function columnLabel(locale: Locale, column: ReportColumn): string {
+  return translatedColumnLabel(locale, column);
+}
 
-export function formatCell(locale, column, value, row) {
+export function formatCell(locale: Locale, column: ReportColumn, value: unknown, row: ReportRow): string {
   if (value === null || value === undefined || value === "") return "—";
   if (column.endsWith("_cents")) {
+    const currency = typeof row["currency"] === "string" ? row["currency"] : "EUR";
     return new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-GB", {
       style: "currency",
-      currency: row.currency ?? "EUR",
+      currency,
     }).format(Number(value) / 100);
   }
   if (column.endsWith("_date") || column.endsWith("_at")) {
-    const date = new Date(value);
+    const date = new Date(String(value));
     return Number.isNaN(date.valueOf()) ? String(value) : new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", {
       dateStyle: "medium",
       timeStyle: "short",
       timeZone: "Europe/Paris",
     }).format(date);
   }
-  if (column === "status" || column === "payment_status" || column === "pennylane_delivery_status") return statusLabel(locale, String(value));
+  if (column === "status" || column === "payment_status" || column === "pennylane_delivery_status") {
+    return statusLabel(locale, String(value));
+  }
   return String(value);
 }
 
-export function defaultFilters(kind) {
-  return { from: "", to: "", dateDimension: REPORTS[kind].dimensions[0], artistId: "", status: "" };
+export function defaultFilters(kind: ReportKind): ReportFilters {
+  return { from: "", to: "", dateDimension: REPORTS[kind].dimensions[0]!, artistId: "", status: "" };
 }

@@ -1,6 +1,9 @@
+import type {ReportColumn, ReportKind} from "common/types";
+import type {Locale} from "common/types/AccountSettings";
+
 export const LOCALE_STORAGE_KEY = "glame-admin-locale";
 
-const DICTIONARY = {
+const DICTIONARY: Record<Locale, Record<string, string>> = {
   en: {
     backOffice: "BACK OFFICE", financialReporting: "FINANCIAL REPORTING", signOut: "Sign out",
     transactions: "Transactions", transactionsDescription: "Service payments, cancellations and refunds.",
@@ -37,7 +40,7 @@ const DICTIONARY = {
   },
 };
 
-const COLUMN_LABELS = {
+const COLUMN_LABELS: Record<ReportColumn, readonly [string, string]> = {
   booking_id: ["Booking ID", "ID de réservation"], customer: ["Customer", "Client"], artist_names: ["Artists", "Artistes"], status: ["Status", "Statut"],
   payment_status: ["Payment status", "Statut du paiement"], service_date: ["Service date", "Date de prestation"], payment_date: ["Payment date", "Date de paiement"],
   refund_date: ["Refund date", "Date de remboursement"], cancelled_at: ["Cancelled at", "Annulé le"], cancellation_reason: ["Cancellation reason", "Motif d’annulation"],
@@ -49,8 +52,8 @@ const COLUMN_LABELS = {
   pennylane_delivery_status: ["Pennylane status", "Statut Pennylane"], stripe_reference: ["Stripe reference", "Référence Stripe"],
 };
 
-export function t(locale, key) { return DICTIONARY[locale]?.[key] ?? DICTIONARY.en[key] ?? key; }
-export function columnLabel(locale, column) { return COLUMN_LABELS[column]?.[locale === "fr" ? 1 : 0] ?? column.replaceAll("_", " "); }
-export function statusLabel(locale, status) { return t(locale, status === "refunded" ? "refundedStatus" : status); }
-export function reportTitle(locale, kind) { return t(locale, kind); }
-export function reportDescription(locale, kind) { return t(locale, `${kind}Description`); }
+export function t(locale: Locale, key: string): string { return DICTIONARY[locale][key] ?? DICTIONARY.en[key] ?? key; }
+export function columnLabel(locale: Locale, column: ReportColumn): string { return COLUMN_LABELS[column][locale === "fr" ? 1 : 0]; }
+export function statusLabel(locale: Locale, status: string): string { return t(locale, status === "refunded" ? "refundedStatus" : status); }
+export function reportTitle(locale: Locale, kind: ReportKind): string { return t(locale, kind); }
+export function reportDescription(locale: Locale, kind: ReportKind): string { return t(locale, `${kind}Description`); }
