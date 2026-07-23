@@ -326,6 +326,10 @@ button:disabled {
   outline-color: #4a998c;
 }
 
+.filters input[aria-invalid='true'] {
+  border-color: $color-danger;
+}
+
 .filter-actions {
   padding-bottom: 1px;
 }

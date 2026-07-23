@@ -30,7 +30,14 @@ export default function ReportPage({
   const [exportReport] = useExportReportMutation();
   const { filters, columns, page } = view;
 
+  function hasValidDateRange(activeFilters = filters): boolean {
+    if (!activeFilters.from || !activeFilters.to || activeFilters.from <= activeFilters.to) return true;
+    onNotify(t(locale, 'invalidDateRange'), 'error');
+    return false;
+  }
+
   async function loadReport(nextPage = page, activeFilters = filters, activeColumns = columns): Promise<void> {
+    if (!hasValidDateRange(activeFilters)) return;
     setReportError('');
     try {
       await loadReportQuery({ kind, filters: activeFilters, columns: activeColumns, page: nextPage, limit: PAGE_SIZE }).unwrap();
@@ -51,6 +58,7 @@ export default function ReportPage({
   }, [session.accessToken, kind]);
 
   async function handleExport(format: 'csv' | 'xlsx'): Promise<void> {
+    if (!hasValidDateRange()) return;
     setExporting(format);
     try {
       const blob = await exportReport({ kind, filters, columns, format }).unwrap();

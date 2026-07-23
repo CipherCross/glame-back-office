@@ -6,6 +6,7 @@ import { REPORTS } from 'common/constants/reporting';
 
 export default function Filters({ kind, filters, artists, onChange, onApply, onClear, loading, locale }: FiltersProps) {
   const report = REPORTS[kind];
+  const invalidDateRange = Boolean(filters.from && filters.to && filters.from > filters.to);
   function update<K extends Exclude<keyof ReportFilters, 'dateDimension'>>(key: K, value: ReportFilters[K]) {
     onChange({ ...filters, [key]: value });
   }
@@ -23,11 +24,23 @@ export default function Filters({ kind, filters, artists, onChange, onApply, onC
       </label>
       <label>
         {t(locale, 'from')}
-        <input type="date" value={filters.from} onChange={(event) => update('from', event.target.value)} />
+        <input
+          type="date"
+          value={filters.from}
+          max={filters.to || undefined}
+          onChange={(event) => update('from', event.target.value)}
+          aria-invalid={invalidDateRange}
+        />
       </label>
       <label>
         {t(locale, 'to')}
-        <input type="date" value={filters.to} onChange={(event) => update('to', event.target.value)} />
+        <input
+          type="date"
+          value={filters.to}
+          min={filters.from || undefined}
+          onChange={(event) => update('to', event.target.value)}
+          aria-invalid={invalidDateRange}
+        />
       </label>
       <label>
         {t(locale, 'artist')}
