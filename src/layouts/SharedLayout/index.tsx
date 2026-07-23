@@ -1,8 +1,8 @@
-import {REPORTS} from 'common/constants/reporting';
-import {reportTitle, t} from 'lib/i18n';
-import type {ReportKind} from 'common/types';
-import type {SharedLayoutProps} from "common/interfaces/layouts";
-
+import { useState } from 'react';
+import { REPORTS } from 'common/constants/reporting';
+import { reportTitle, t } from 'lib/i18n';
+import type { ReportKind } from 'common/types';
+import type { SharedLayoutProps } from 'common/interfaces/layouts';
 
 export default function SharedLayout({
   session,
@@ -13,9 +13,23 @@ export default function SharedLayout({
   onSignOut,
   children
 }: SharedLayoutProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <button
+        className="sidebar-menu-toggle"
+        type="button"
+        aria-label={t(locale, menuOpen ? 'close' : 'openMenu')}
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((current) => !current)}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+      {menuOpen && <button className="sidebar-backdrop" type="button" aria-label={t(locale, 'close')} onClick={() => setMenuOpen(false)} />}
+      <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`}>
         <div>
           <div className="sidebar-brand">
             <img src="/logo.svg" alt="Glame" />
@@ -23,7 +37,14 @@ export default function SharedLayout({
           <p className="workspace">{t(locale, 'backOffice')}</p>
           <nav aria-label={t(locale, 'results')}>
             {(Object.keys(REPORTS) as ReportKind[]).map((key) => (
-              <button key={key} className={`nav-item ${activeReport === key ? 'active' : ''}`} onClick={() => onReportChange(key)}>
+              <button
+                key={key}
+                className={`nav-item ${activeReport === key ? 'active' : ''}`}
+                onClick={() => {
+                  onReportChange(key);
+                  setMenuOpen(false);
+                }}
+              >
                 <span>{key === 'transactions' ? '▦' : '↗'}</span>
                 {reportTitle(locale, key)}
               </button>
@@ -33,7 +54,13 @@ export default function SharedLayout({
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <span>{session.name}</span>
-            <button className="account-button" onClick={onOpenAccountSettings}>
+            <button
+              className="account-button"
+              onClick={() => {
+                onOpenAccountSettings();
+                setMenuOpen(false);
+              }}
+            >
               {t(locale, 'account')}
             </button>
           </div>

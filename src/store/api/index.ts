@@ -1,25 +1,27 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { API_BASE_URL } from 'common/constants/api';
-import type { Artist, AuthResponse, ReportColumn, ReportFilters, ReportKind, ReportResponse } from 'common/types';
+import { API_REDUCER_PATH, API_TAGS, API_TAG_TYPES } from 'common/constants/store/api';
+import type {
+  ActionResponse,
+  ArtistsResponse,
+  CurrentUserResponse,
+  EmailResponse,
+  ExportRequest,
+  LoginRequest,
+  LogoutRequest,
+  NewEmailCodeRequest,
+  PasswordRequest,
+  PasswordUpdateRequest,
+  RefreshSessionRequest,
+  ReportRequest,
+  SearchParamsOptions,
+  TokenResponse,
+  VerificationCodeRequest
+} from 'common/interfaces/store/api';
+import type { AuthResponse, ReportColumn, ReportFilters, ReportResponse } from 'common/types';
 import type { RootState } from 'store/index';
 
-interface ReportRequest {
-  kind: ReportKind;
-  filters: ReportFilters;
-  columns: ReportColumn[];
-  page: number;
-  limit: number;
-}
-
-interface ExportRequest extends Omit<ReportRequest, 'page' | 'limit'> {
-  format: 'csv' | 'xlsx';
-}
-
-function searchParams(
-  filters: ReportFilters,
-  columns: ReportColumn[],
-  options: { page?: number; limit?: number; format?: 'csv' | 'xlsx' } = {}
-): string {
+function searchParams(filters: ReportFilters, columns: ReportColumn[], options: SearchParamsOptions = {}): string {
   const params = new URLSearchParams();
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
@@ -36,7 +38,7 @@ function searchParams(
 }
 
 export const api = createApi({
-  reducerPath: 'api',
+  reducerPath: API_REDUCER_PATH,
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
@@ -45,15 +47,15 @@ export const api = createApi({
       return headers;
     }
   }),
-  tagTypes: ['CurrentUser', 'Artists'],
+  tagTypes: API_TAG_TYPES,
   endpoints: (builder) => ({
-    login: builder.mutation<AuthResponse, { email: string; password: string }>({
+    login: builder.mutation<AuthResponse, LoginRequest>({
       query: (body) => ({ url: '/auth/email', method: 'POST', body })
     }),
-    refreshSession: builder.mutation<AuthResponse, { refreshToken: string }>({
+    refreshSession: builder.mutation<AuthResponse, RefreshSessionRequest>({
       query: ({ refreshToken }) => ({ url: '/auth/refresh', method: 'POST', body: { refresh_token: refreshToken } })
     }),
-    logout: builder.mutation<{ action: string }, { accessToken: string }>({
+    logout: builder.mutation<ActionResponse, LogoutRequest>({
       query: ({ accessToken }) => ({
         url: '/auth/logout',
         method: 'POST',
@@ -61,13 +63,13 @@ export const api = createApi({
         headers: { Authorization: `Bearer ${accessToken}` }
       })
     }),
-    getCurrentUser: builder.query<{ user?: { full_name?: string | null; email?: string | null } }, void>({
+    getCurrentUser: builder.query<CurrentUserResponse, void>({
       query: () => '/admin/reports/me',
-      providesTags: ['CurrentUser']
+      providesTags: [API_TAGS.currentUser]
     }),
-    getArtists: builder.query<{ artists: Artist[] }, void>({
+    getArtists: builder.query<ArtistsResponse, void>({
       query: () => '/admin/reports/artists',
-      providesTags: ['Artists']
+      providesTags: [API_TAGS.artists]
     }),
     getReport: builder.query<ReportResponse, ReportRequest>({
       query: ({ kind, filters, columns, page, limit }) => `/admin/reports/${kind}?${searchParams(filters, columns, { page, limit })}`
@@ -78,22 +80,22 @@ export const api = createApi({
         responseHandler: (response) => response.blob()
       })
     }),
-    verifyCurrentPassword: builder.mutation<{ token: string }, { password: string }>({
+    verifyCurrentPassword: builder.mutation<TokenResponse, PasswordRequest>({
       query: (body) => ({ url: '/auth/password/verify', method: 'POST', body })
     }),
-    updatePassword: builder.mutation<{ action: string }, { password: string; token: string }>({
+    updatePassword: builder.mutation<ActionResponse, PasswordUpdateRequest>({
       query: (body) => ({ url: '/auth/password/update', method: 'POST', body })
     }),
-    sendCurrentEmailCode: builder.mutation<{ action: string }, void>({
+    sendCurrentEmailCode: builder.mutation<ActionResponse, void>({
       query: () => ({ url: '/users/me/email/change/send-otp', method: 'POST' })
     }),
-    verifyCurrentEmailCode: builder.mutation<{ token: string }, { code: string }>({
+    verifyCurrentEmailCode: builder.mutation<TokenResponse, VerificationCodeRequest>({
       query: (body) => ({ url: '/users/me/email/change/verify-current', method: 'POST', body })
     }),
-    sendNewEmailCode: builder.mutation<{ action: string }, { token: string; newEmail: string }>({
+    sendNewEmailCode: builder.mutation<ActionResponse, NewEmailCodeRequest>({
       query: ({ token, newEmail }) => ({ url: '/users/me/email/change/send-new-otp', method: 'POST', body: { token, new_email: newEmail } })
     }),
-    confirmNewEmail: builder.mutation<{ email: string }, { code: string }>({
+    confirmNewEmail: builder.mutation<EmailResponse, VerificationCodeRequest>({
       query: (body) => ({ url: '/users/me/email/change/confirm', method: 'POST', body })
     })
   })

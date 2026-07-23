@@ -1,10 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { INITIAL_REPORTS_STATE } from 'common/constants/store/reports';
+import type { ReportsState, SwitchReportRequest, UpdateReportViewRequest } from 'common/interfaces/store/reports';
 import { defaultReportState } from 'lib/report-cache';
-import type { ReportKind, ReportState, ReportView } from 'common/types';
-
-interface ReportsState {
-  byAccount: Record<string, ReportState>;
-}
+import type { ReportState } from 'common/types';
 
 function accountKey(email: string): string {
   return email.trim().toLowerCase();
@@ -22,12 +20,12 @@ export function selectReportState(state: ReportsState, email: string | undefined
 
 const reportsSlice = createSlice({
   name: 'reports',
-  initialState: { byAccount: {} } as ReportsState,
+  initialState: INITIAL_REPORTS_STATE,
   reducers: {
-    switchReport: (state, action: PayloadAction<{ email: string; kind: ReportKind }>) => {
+    switchReport: (state, action: PayloadAction<SwitchReportRequest>) => {
       ensureReportState(state, action.payload.email).activeKind = action.payload.kind;
     },
-    updateReportView: (state, action: PayloadAction<{ email: string; kind: ReportKind; changes: Partial<ReportView> }>) => {
+    updateReportView: (state, action: PayloadAction<UpdateReportViewRequest>) => {
       Object.assign(ensureReportState(state, action.payload.email).views[action.payload.kind], action.payload.changes);
     },
     resetReports: (state, action: PayloadAction<string>) => {

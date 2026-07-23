@@ -2,6 +2,7 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistReducer, persistStore } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
+import { PERSIST_KEY, PERSIST_VERSION, PERSIST_WHITELIST } from 'common/constants/store';
 import { api } from 'store/api';
 import authReducer from 'store/auth';
 import reportsReducer from 'store/reports';
@@ -16,10 +17,10 @@ const rootReducer = combineReducers({
 
 const persistedReducer = persistReducer(
   {
-    key: 'glame-back-office',
-    version: 1,
+    key: PERSIST_KEY,
+    version: PERSIST_VERSION,
     storage,
-    whitelist: ['auth', 'reports', 'settings']
+    whitelist: PERSIST_WHITELIST
   },
   rootReducer
 );

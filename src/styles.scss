@@ -11,7 +11,9 @@ $color-muted: #69807d;
 $color-border: #dde6e3;
 $sidebar-width: 244px;
 $breakpoint-tablet: 1100px;
-$breakpoint-mobile: 760px;
+$breakpoint-sidebar: 1024px;
+$breakpoint-compact-tablet: 768px;
+$breakpoint-mobile: 600px;
 $breakpoint-small: 420px;
 
 @mixin flex($direction: row, $align: null, $justify: null) {
@@ -107,6 +109,11 @@ button:disabled {
   overflow: hidden;
 }
 
+.sidebar-menu-toggle,
+.sidebar-backdrop {
+  display: none;
+}
+
 .sidebar-brand {
   width: 126px;
   height: 54px;
@@ -198,7 +205,6 @@ button:disabled {
 .content {
   height: 100vh;
   padding: 34px clamp(24px, 4vw, 68px) 24px;
-  max-width: 1800px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -254,7 +260,7 @@ button:disabled {
   padding: 0 7px;
   background: transparent;
   color: #54716d;
-  font-size: 12px;
+  font-size: clamp(11px, 1.8vw, 12px);
   font-weight: 750;
 }
 
@@ -270,7 +276,10 @@ button:disabled {
   border-radius: 7px;
   padding: 0 15px;
   border: 1px solid transparent;
+  flex: 0 0 auto;
+  font-size: clamp(11px, 1.8vw, 14px);
   font-weight: 650;
+  white-space: nowrap;
 }
 
 .primary-button {
@@ -459,6 +468,7 @@ button:disabled {
 
 .table-scroll table {
   width: 100%;
+  min-width: 1120px;
   border-collapse: collapse;
   font-size: 13px;
   white-space: nowrap;
@@ -957,39 +967,64 @@ button:disabled {
   }
 }
 
-@include at-most($breakpoint-mobile) {
-  body {
-    overflow: auto;
-  }
-
+@include at-most($breakpoint-sidebar) {
   .app-shell {
     padding-left: 0;
   }
 
+  .sidebar-menu-toggle {
+    position: fixed;
+    z-index: 30;
+    top: 34px;
+    right: 16px;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-content: center;
+    gap: 4px;
+    border: 0;
+    border-radius: 9px;
+    background: $color-sidebar;
+    box-shadow: 0 8px 20px #173b3930;
+  }
+
+  .sidebar-menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: $color-white;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    display: block;
+    width: 100%;
+    border: 0;
+    background: #081f1e80;
+  }
+
   .sidebar {
-    position: static;
-    width: auto;
-    min-height: auto;
-    padding: 14px;
-    flex-direction: row;
-    align-items: center;
+    z-index: 25;
+    width: min(286px, calc(100vw - 48px));
+    transform: translateX(-100%);
+    transition: transform 0.22s ease-out;
   }
 
-  .sidebar-brand {
-    padding: 0;
-  }
-
-  .workspace,
-  .sidebar-footer,
-  .sidebar nav {
-    display: none;
+  .sidebar.is-open {
+    transform: translateX(0);
   }
 
   .content {
-    height: auto;
-    min-height: calc(100vh - 60px);
-    padding: 27px 16px;
-    overflow: visible;
+    padding-top: 34px;
+  }
+}
+
+@include at-most($breakpoint-compact-tablet) {
+  .content {
+    padding: 34px 20px 20px;
   }
 
   .topbar {
@@ -997,11 +1032,8 @@ button:disabled {
   }
 
   .export-actions {
-    width: 100%;
-  }
-
-  .export-actions > button {
-    flex: 1;
+    width: auto;
+    flex-wrap: wrap;
   }
 
   .filters {
@@ -1026,16 +1058,43 @@ button:disabled {
     font-size: 17px;
   }
 
-  .report-card {
-    min-height: 420px;
-  }
-
   .report-card-head {
+    align-items: flex-start;
+    gap: 12px;
     padding: 15px;
   }
 
+  .column-picker {
+    margin-left: auto;
+  }
+
   .table-footer {
+    gap: 12px;
+    flex-wrap: wrap;
     padding: 0 15px;
+  }
+}
+
+@include at-most($breakpoint-mobile) {
+  body {
+    overflow: auto;
+  }
+
+  .content {
+    height: auto;
+    min-height: 100vh;
+    padding: 27px 16px;
+    padding-top: 27px;
+    overflow: visible;
+  }
+
+  .sidebar-menu-toggle {
+    top: 27px;
+    right: 14px;
+  }
+
+  .report-card {
+    min-height: 420px;
   }
 
   .toast-stack {
