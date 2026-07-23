@@ -1,8 +1,8 @@
-import {REPORTS} from "lib/reporting";
 import {statusLabel, t} from "lib/i18n";
 import type {DateDimension, ReportFilters} from "common/types";
 import {STATUSES} from "common/constants/Filters";
 import type {FiltersProps} from "common/interfaces/Filters";
+import {REPORTS} from "common/constants/reporting";
 
 
 export default function Filters({ kind, filters, artists, onChange, onApply, onClear, loading, locale }: FiltersProps) {

@@ -20,7 +20,10 @@ export type ReportColumn =
   | "currency"
   | "address"
   | "stripe_payment_intent_id"
+  | "operation_type"
+  | "operation_date"
   | "transfer_id"
+  | "refund_id"
   | "artist_id"
   | "artist_name"
   | "payout_date"
@@ -80,4 +83,3 @@ export interface AuthResponse {
   session?: AuthSessionPayload | null;
   user?: AuthUser | null;
 }
-

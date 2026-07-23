@@ -12,6 +12,7 @@ export default defineConfig({
       common: resolveSrc("common"),
       components: resolveSrc("components"),
       lib: resolveSrc("lib"),
+      pages: resolveSrc("pages"),
     },
   },
 });

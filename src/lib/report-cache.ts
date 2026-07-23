@@ -1,8 +1,8 @@
-import {defaultFilters, REPORTS} from "lib/reporting";
+import {defaultFilters} from "lib/reporting";
 import type {ReportColumn, ReportKind, ReportState, ReportView} from "common/types";
+import {CACHE_PREFIX, CACHE_VERSION} from "common/constants/report-cache";
+import {REPORTS} from "common/constants/reporting";
 
-const CACHE_VERSION = 1;
-const CACHE_PREFIX = "glame-admin-report-state";
 
 function defaultView(kind: ReportKind): ReportView {
   return {
@@ -37,6 +37,9 @@ function normalizeView(kind: ReportKind, value: unknown): ReportView {
   const validColumns = Array.isArray(raw["columns"])
     ? raw["columns"].filter((column): column is ReportColumn => typeof column === "string" && REPORTS[kind].columns.includes(column as ReportColumn))
     : [];
+  // Older saved views were designed for transfers only. They display misleading
+  // empty payout/invoice cells once refunds are included in this report.
+  const hasMixedOperationLayout = validColumns.includes("operation_type") && validColumns.includes("operation_date");
   const dateDimension = typeof filters["dateDimension"] === "string" && REPORTS[kind].dimensions.includes(filters["dateDimension"] as ReportView["filters"]["dateDimension"])
     ? filters["dateDimension"] as ReportView["filters"]["dateDimension"]
     : defaults.filters.dateDimension;
@@ -48,7 +51,9 @@ function normalizeView(kind: ReportKind, value: unknown): ReportView {
       artistId: typeof filters["artistId"] === "string" ? filters["artistId"] : defaults.filters.artistId,
       status: typeof filters["status"] === "string" ? filters["status"] : defaults.filters.status,
     },
-    columns: validColumns.length ? validColumns : defaults.columns,
+    columns: validColumns.length && (kind !== "payouts" || hasMixedOperationLayout)
+      ? validColumns
+      : defaults.columns,
     page: typeof raw["page"] === "number" && Number.isInteger(raw["page"]) && raw["page"] >= 0 ? raw["page"] : 0,
   };
 }

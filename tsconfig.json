@@ -13,7 +13,8 @@
       "app": ["./src/App.tsx"],
       "common/*": ["./src/common/*"],
       "components/*": ["./src/components/*"],
-      "lib/*": ["./src/lib/*"]
+      "lib/*": ["./src/lib/*"],
+      "pages/*": ["./src/pages/*"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,

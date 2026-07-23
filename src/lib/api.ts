@@ -1,7 +1,7 @@
 import type {Artist, AuthResponse, ReportColumn, ReportFilters, ReportKind, ReportResponse} from "common/types";
+import {API_BASE_URL} from "common/constants/api";
+import type {RequestOptions} from "common/interfaces/api";
 
-const API_BASE_URL = (import.meta.env["VITE_API_BASE_URL"]
-  ?? "https://jxsnltrsdegskfyoguiy.supabase.co/functions/v1/api").replace(/\/$/, "");
 
 export class ApiError extends Error {
   readonly status: number;
@@ -13,12 +13,6 @@ export class ApiError extends Error {
   }
 }
 
-interface RequestOptions {
-  token?: string;
-  method?: "GET" | "POST";
-  body?: Record<string, unknown>;
-  responseType?: "json" | "blob";
-}
 
 async function request<T>(path: string, { token, method = "GET", body, responseType = "json" }: RequestOptions = {}): Promise<T> {
   const headers = new Headers();
