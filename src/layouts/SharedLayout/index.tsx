@@ -11,6 +11,7 @@ export default function SharedLayout({
   onReportChange,
   onOpenAccountSettings,
   onSignOut,
+  sidebarControls,
   children
 }: SharedLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -50,6 +51,7 @@ export default function SharedLayout({
               </button>
             ))}
           </nav>
+          <div className="sidebar-report-actions">{sidebarControls}</div>
         </div>
         <div className="sidebar-footer">
           <div className="sidebar-user">

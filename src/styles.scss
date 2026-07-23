@@ -114,6 +114,10 @@ button:disabled {
   display: none;
 }
 
+.sidebar-report-actions {
+  display: none;
+}
+
 .sidebar-brand {
   width: 126px;
   height: 54px;
@@ -1015,6 +1019,21 @@ button:disabled {
 
   .sidebar.is-open {
     transform: translateX(0);
+  }
+
+  .topbar-actions {
+    display: none;
+  }
+
+  .sidebar-report-actions {
+    display: block;
+    margin: 18px 12px 0;
+    padding-top: 18px;
+    border-top: 1px solid $color-sidebar-border;
+  }
+
+  .sidebar-report-actions .export-actions {
+    flex-wrap: wrap;
   }
 
   .content {

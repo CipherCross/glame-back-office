@@ -1,5 +1,6 @@
 import type { Artist, ReportKind, ReportView, ToastType } from 'common/types';
 import type { BackOfficeSession, Locale } from 'common/types/AccountSettings';
+import type { ReactNode } from 'react';
 
 export interface ReportPageProps {
   kind: ReportKind;
@@ -11,4 +12,5 @@ export interface ReportPageProps {
   onUnauthorized: () => void;
   onLocaleChange: (locale: Locale) => void;
   onNotify: (message: string, type: ToastType) => void;
+  onSidebarControlsChange: (controls: ReactNode) => void;
 }

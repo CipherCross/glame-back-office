@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import AccountSettings from 'components/AccountSettings';
 import AccountantLayout from 'layouts/AccountantLayout';
 import AdminLayout from 'layouts/AdminLayout';
@@ -31,6 +31,7 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [path, setPath] = useState(() => window.location.pathname);
   const [restoringSession, setRestoringSession] = useState(true);
+  const [sidebarControls, setSidebarControls] = useState<ReactNode>(null);
   const restoreStarted = useRef(false);
   const kind = reportState.activeKind;
   const artistsQuery = useGetArtistsQuery(undefined, { skip: !session });
@@ -59,9 +60,12 @@ export default function App() {
     if (session) dispatch(updateReportView({ email: session.email, kind: reportKind, changes }));
   }
 
-  function changeLocale(nextLocale: typeof locale): void {
-    dispatch(setLocale(nextLocale));
-  }
+  const changeLocale = useCallback(
+    (nextLocale: typeof locale): void => {
+      dispatch(setLocale(nextLocale));
+    },
+    [dispatch]
+  );
 
   async function handleLogin(email: string, password: string): Promise<void> {
     try {
@@ -143,7 +147,8 @@ export default function App() {
     onViewChange: (changes: Partial<ReportView>) => updateView(kind, changes),
     onUnauthorized: () => signOut(false),
     onLocaleChange: changeLocale,
-    onNotify: notify
+    onNotify: notify,
+    onSidebarControlsChange: setSidebarControls
   };
 
   const Layout = session.role === 'admin' ? AdminLayout : AccountantLayout;
@@ -156,6 +161,7 @@ export default function App() {
         onReportChange={(nextKind) => dispatch(switchReport({ email: session.email, kind: nextKind }))}
         onOpenAccountSettings={() => setAccountSettingsOpen(true)}
         onSignOut={() => signOut()}
+        sidebarControls={sidebarControls}
       >
         {kind === 'transactions' ? <TransactionsPage {...reportPageProps} /> : <PayoutsPage {...reportPageProps} />}
       </Layout>
