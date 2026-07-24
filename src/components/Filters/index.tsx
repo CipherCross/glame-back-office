@@ -92,7 +92,7 @@ export default function Filters({ kind, filters, artists, onChange, onApply, onC
         <Button variant="contained" onClick={onApply} disabled={loading}>
           {loading ? t(locale, 'updating') : t(locale, 'apply')}
         </Button>
-        <Button variant="text" onClick={onClear} disabled={loading}>
+        <Button variant="text" onClick={onClear}>
           {t(locale, 'reset')}
         </Button>
       </Stack>

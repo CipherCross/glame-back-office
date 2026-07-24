@@ -27,7 +27,8 @@ export default function ReportPage({
 }: ReportPageProps) {
   const [reportError, setReportError] = useState('');
   const [exporting, setExporting] = useState<'' | 'csv' | 'xlsx'>('');
-  const [loadReportQuery, { data: report, isFetching: loading }] = useLazyGetReportQuery();
+  const [applyingFilters, setApplyingFilters] = useState(false);
+  const [loadReportQuery, { data: report, isFetching }] = useLazyGetReportQuery();
   const [exportReport] = useExportReportMutation();
   const { filters, columns, page } = view;
 
@@ -40,9 +41,15 @@ export default function ReportPage({
     [filters, locale, onNotify]
   );
 
-  async function loadReport(nextPage = page, activeFilters = filters, activeColumns = columns): Promise<void> {
+  async function loadReport(
+    nextPage = page,
+    activeFilters = filters,
+    activeColumns = columns,
+    isFilterApply = false
+  ): Promise<void> {
     if (!hasValidDateRange(activeFilters)) return;
     setReportError('');
+    if (isFilterApply) setApplyingFilters(true);
     try {
       await loadReportQuery({ kind, filters: activeFilters, columns: activeColumns, page: nextPage, limit: PAGE_SIZE }).unwrap();
       onViewChange({ page: nextPage });
@@ -54,6 +61,8 @@ export default function ReportPage({
         setReportError(message);
         onNotify(message, 'error');
       }
+    } finally {
+      if (isFilterApply) setApplyingFilters(false);
     }
   }
 
@@ -125,13 +134,12 @@ export default function ReportPage({
         filters={filters}
         artists={artists}
         onChange={(nextFilters) => onViewChange({ filters: nextFilters })}
-        onApply={() => void loadReport(0)}
+        onApply={() => void loadReport(0, filters, columns, true)}
         onClear={() => {
           const resetFilters = defaultFilters(kind);
           onViewChange({ filters: resetFilters, page: 0 });
-          void loadReport(0, resetFilters);
         }}
-        loading={loading}
+        loading={applyingFilters}
         locale={locale}
       />
       <section className="summary-grid">
@@ -173,7 +181,7 @@ export default function ReportPage({
         <ReportTable
           rows={activeReport.rows}
           columns={columns}
-          loading={loading}
+          loading={isFetching}
           error={reportError}
           page={page}
           limit={PAGE_SIZE}
