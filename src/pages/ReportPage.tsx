@@ -138,6 +138,7 @@ export default function ReportPage({
         onClear={() => {
           const resetFilters = defaultFilters(kind);
           onViewChange({ filters: resetFilters, page: 0 });
+          void loadReport(0, resetFilters);
         }}
         loading={applyingFilters}
         locale={locale}
